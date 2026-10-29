@@ -1,0 +1,34 @@
+{
+  "name": "trabajo-pedidos",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistema distribuido de pedidos con NestJS, React, Kafka y PostgreSQL",
+  "workspaces": [
+    "services/ms-auth",
+    "services/ms-catalogo",
+    "services/ms-pedidos",
+    "services/ms-pagos",
+    "apps/pasarela-stub",
+    "apps/frontend",
+    "packages/contracts",
+    "scripts",
+    "tests"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:e2e": "npm run test:e2e --workspace tests",
+    "test:integration": "npm run build --workspace services/ms-catalogo && npm run build --workspace services/ms-pedidos && npm run test:integration --workspace tests",
+    "format": "npm run format --workspaces --if-present",
+    "dev:auth": "npm run start:dev --workspace services/ms-auth",
+    "dev:ms-catalogo": "npm run start:dev --workspace services/ms-catalogo",
+    "dev:ms-pedidos": "npm run start:dev --workspace services/ms-pedidos",
+    "dev:ms-pagos": "npm run start:dev --workspace services/ms-pagos",
+    "dev:stub": "npm run start:dev --workspace apps/pasarela-stub",
+    "dev:frontend": "npm run dev --workspace apps/frontend",
+    "tokens": "node scripts/dist/token-generator.js"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

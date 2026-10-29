@@ -1,0 +1,12 @@
+{
+  "name": "@trabajo-pedidos/scripts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/token-generator.js"
+  },
+  "dependencies": { "jsonwebtoken": "^9.0.2" },
+  "devDependencies": { "@types/jsonwebtoken": "^9.0.9", "typescript": "^5.9.2" }
+}

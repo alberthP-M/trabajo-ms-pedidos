@@ -1,0 +1,211 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres-init.sql:/docker-entrypoint-initdb.d/01-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  kafka:
+    image: apache/kafka:3.9.0
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/9092'"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  kafka-init:
+    image: apache/kafka:3.9.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command: ["/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic payments.commands.v1 --partitions 3 --replication-factor 1 && /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic payments.results.v1 --partitions 3 --replication-factor 1"]
+    restart: "no"
+
+  ms-auth:
+    build:
+      context: .
+      dockerfile: services/ms-auth/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 3005
+      DATABASE_URL: postgres://auth:auth@postgres:5432/auth_db
+      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
+      JWT_ISSUER: ${JWT_ISSUER:-trabajo-pedidos}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-trabajo-pedidos-api}
+      ACCESS_TOKEN_TTL: ${ACCESS_TOKEN_TTL:-2h}
+      REFRESH_TOKEN_DAYS: ${REFRESH_TOKEN_DAYS:-7}
+      SEED_CLIENT_PASSWORD: ${SEED_CLIENT_PASSWORD:-cliente123}
+      SEED_BRANCH_PASSWORD: ${SEED_BRANCH_PASSWORD:-sucursal123}
+    ports:
+      - "3005:3005"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3005/health/live || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  ms-catalogo:
+    build:
+      context: .
+      dockerfile: services/ms-catalogo/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgres://catalogo:catalogo@postgres:5432/catalogo_db
+      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
+      JWT_ISSUER: ${JWT_ISSUER:-trabajo-pedidos}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-trabajo-pedidos-api}
+      SERVICE_JWT_SECRET: ${SERVICE_JWT_SECRET:-dev-service-only-change-me}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/health/live || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  pasarela-stub:
+    build:
+      context: .
+      dockerfile: apps/pasarela-stub/Dockerfile
+    environment:
+      PORT: 3004
+      STUB_ERROR_RATE: ${STUB_ERROR_RATE:-0}
+      STUB_REJECT_RATE: ${STUB_REJECT_RATE:-0}
+      STUB_MAX_LATENCY_MS: ${STUB_MAX_LATENCY_MS:-0}
+      STUB_EXECUTE_THEN_TIMEOUT_RATE: ${STUB_EXECUTE_THEN_TIMEOUT_RATE:-0}
+      STUB_MODE: ${STUB_MODE:-deterministic}
+    ports:
+      - "3004:3004"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3004/health/live || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  ms-pagos:
+    build:
+      context: .
+      dockerfile: services/ms-pagos/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      DATABASE_URL: postgres://pagos:pagos@postgres:5432/pagos_db
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: ms-pagos
+      KAFKA_GROUP_ID: ms-pagos
+      KAFKA_COMMAND_TOPIC: payments.commands.v1
+      KAFKA_RESULT_TOPIC: payments.results.v1
+      PAYMENT_STUB_URL: http://pasarela-stub:3004
+      PAYMENT_TIMEOUT_MS: ${PAYMENT_TIMEOUT_MS:-1200}
+      PAYMENT_MAX_RETRIES: ${PAYMENT_MAX_RETRIES:-3}
+      PAYMENT_BACKOFF_MS: ${PAYMENT_BACKOFF_MS:-150}
+      CIRCUIT_FAILURE_THRESHOLD: ${CIRCUIT_FAILURE_THRESHOLD:-3}
+      CIRCUIT_OPEN_MS: ${CIRCUIT_OPEN_MS:-10000}
+      SERVICE_JWT_SECRET: ${SERVICE_JWT_SECRET:-dev-service-only-change-me}
+    ports:
+      - "3003:3003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      pasarela-stub:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3003/health/live || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  ms-pedidos:
+    build:
+      context: .
+      dockerfile: services/ms-pedidos/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DATABASE_URL: postgres://pedidos:pedidos@postgres:5432/pedidos_db
+      MS_CATALOGO_URL: http://ms-catalogo:3001
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: ms-pedidos
+      KAFKA_GROUP_ID: ms-pedidos
+      KAFKA_RESULT_TOPIC: payments.results.v1
+      KAFKA_COMMAND_TOPIC: payments.commands.v1
+      HTTP_TIMEOUT_MS: ${HTTP_TIMEOUT_MS:-2500}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
+      JWT_ISSUER: ${JWT_ISSUER:-trabajo-pedidos}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-trabajo-pedidos-api}
+      SERVICE_JWT_SECRET: ${SERVICE_JWT_SECRET:-dev-service-only-change-me}
+    ports:
+      - "3002:3002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ms-auth:
+        condition: service_healthy
+      ms-catalogo:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3002/health/live || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+      args:
+        VITE_MS_AUTH_URL: http://localhost:3005
+        VITE_MS_CATALOGO_URL: http://localhost:3001
+        VITE_MS_PEDIDOS_URL: http://localhost:3002
+    ports:
+      - "5173:80"
+    depends_on:
+      ms-auth:
+        condition: service_healthy
+      ms-catalogo:
+        condition: service_healthy
+      ms-pedidos:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
