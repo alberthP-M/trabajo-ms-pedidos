@@ -1,0 +1,7 @@
+{
+  "name": "@trabajo-pedidos/e2e",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "test:e2e": "node --test e2e/smoke.test.js", "test:integration": "node --test integration/catalogo.postgres.test.js" }
+}

@@ -1,0 +1,24 @@
+:root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #e8edf6; background: #0f172a; font-synthesis: none; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; }
+button, input, select { font: inherit; }
+button { cursor: pointer; }
+.container { max-width: 1180px; margin: 0 auto; padding: 34px 20px 70px; }
+header { display:flex; justify-content:space-between; gap:20px; align-items:flex-start; margin-bottom:24px; }
+h1 { margin: 0; font-size: 42px; letter-spacing: -1px; } h2 { margin-top:0; } p { color:#aab5c8; }
+.eyebrow { color:#6ee7b7; font-size:12px; letter-spacing:2px; font-weight:700; }
+.status-dot { border:1px solid #334155; border-radius:999px; color:#a7f3d0; padding:8px 13px; font-size:13px; }
+.card { background:#17223b; border:1px solid #293854; border-radius:16px; padding:22px; box-shadow:0 12px 35px rgba(0,0,0,.16); margin-bottom:18px; }
+.grid.two { display:grid; grid-template-columns:1.25fr .75fr; gap:18px; } .auth { display:flex; gap:18px; align-items:end; }
+label { display:flex; flex-direction:column; gap:8px; color:#dbeafe; font-weight:600; flex:1; } input, select { background:#0f172a; color:#f8fafc; border:1px solid #3b4d6b; border-radius:9px; padding:11px 12px; outline:none; } input:focus, select:focus { border-color:#6ee7b7; }
+small { color:#8fa0b8; display:block; margin-top:7px; } code { color:#a7f3d0; }
+.menu { margin-top:18px; display:grid; gap:10px; }.menu-item { display:flex; justify-content:space-between; gap:14px; align-items:center; padding:14px; background:#111b30; border-radius:11px; }.menu-item p { margin:4px 0; font-size:13px; }.menu-item span { color:#8fa0b8; font-size:13px; }
+.menu-toolbar { display:flex; align-items:end; gap:10px; }.menu-toolbar > label { min-width:0; }.menu-toolbar > button { border:0; border-radius:8px; padding:11px 12px; background:#334155; color:#fff; white-space:nowrap; }
+.quantity { display:flex; align-items:center; gap:8px; }.quantity button, .inline-form button { border:0; border-radius:8px; padding:8px 12px; background:#334155; color:#fff; }.quantity button:disabled { opacity:.4; cursor:not-allowed; }
+.total { display:flex; justify-content:space-between; align-items:center; border-top:1px solid #334155; margin:20px 0; padding-top:18px; font-size:20px; }.primary { width:100%; border:0; border-radius:9px; padding:13px; background:#6ee7b7; color:#052e24; font-weight:800; }.primary:disabled { opacity:.55; }
+.order-status { border-radius:11px; padding:15px; margin-top:20px; border:1px solid #3b4d6b; }.order-status.confirmado { border-color:#34d399; }.order-status.rechazado { border-color:#fb7185; }.status-line { display:flex; justify-content:space-between; gap:10px; }.order-status ol { padding-left:20px; color:#cbd5e1; }.order-status li { margin:8px 0; }.order-status li small { margin-top:2px; }
+.inline-form { display:flex; gap:10px; }.inline-form > input, .inline-form > select { min-width:0; flex:1; }.inline-form button { background:#60a5fa; color:#07152d; font-weight:700; }.alert { background:#4c1d35; border:1px solid #fb7185; color:#fecdd3; border-radius:10px; padding:13px; }.empty { text-align:center; padding:45px; }
+.order-id-input { flex:1; min-width:320px; }.lookup-success, .success { color:#6ee7b7; margin:12px 0 0; }.success { background:#123b35; border:1px solid #34d399; border-radius:10px; padding:13px; }
+.section-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; }.section-heading h2 { margin-bottom:0; }.section-heading button { border:0; border-radius:8px; padding:9px 12px; background:#334155; color:#fff; }
+.orders-list { display:grid; gap:8px; }.order-row { width:100%; display:flex; justify-content:space-between; gap:16px; text-align:left; border:1px solid #293854; border-radius:10px; padding:12px; background:#111b30; color:#e8edf6; }.order-row:hover { border-color:#60a5fa; }.order-row > span:last-child { text-align:right; }.order-row small { margin-top:4px; }
+@media (max-width: 780px) { .grid.two { grid-template-columns:1fr; } .auth, .inline-form, .menu-toolbar { flex-direction:column; align-items:stretch; } header { flex-direction:column; } }
