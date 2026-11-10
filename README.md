@@ -1,6 +1,6 @@
 # Trabajo de pedidos con microservicios
 
-Sistema distribuido para el trabajo aplicado de Microservicios. La implementación contiene cuatro servicios NestJS independientes (`ms-auth`, `ms-catalogo`, `ms-pedidos` y `ms-pagos`), React, Kafka, PostgreSQL, una pasarela de pagos simulada y pruebas de los flujos de confirmación y compensación.
+Sistema distribuido para el trabajo aplicado de Microservicios. Los tres servicios del dominio evaluado son `ms-catalogo`, `ms-pedidos` y `ms-pagos`. `ms-auth` es un auxiliar de identidad para emitir JWT, separado de la saga. La implementación incluye React, Kafka, PostgreSQL, una pasarela de pagos simulada y pruebas de los flujos de confirmación y compensación.
 
 ## Arranque con Docker
 
@@ -23,6 +23,12 @@ Instalar dependencias con `npm install`. Con PostgreSQL y Kafka disponibles, usa
 El frontend inicia sesión contra `ms-auth`, conserva el access token y usa el refresh token para renovar la sesión. El JWT manual sigue disponible para pruebas con `npm run tokens -- --role cliente --sub cliente-demo`.
 
 ## Escenarios de defensa
+
+La interfaz React muestra el estado interno de la saga, un cronómetro calculado desde la creación del pedido, el historial persistido y el ID de correlación para buscar logs. Consulta el pedido automáticamente mientras esté `pendiente`. La pasarela del entorno Docker espera **1,8 s** por defecto antes de responder; `PAYMENT_TIMEOUT_MS=3500` deja margen para ese retraso.
+
+Para ajustar la velocidad de la demostración, modifica `.env` y recrea los contenedores con `docker compose up -d --build --force-recreate`. `STUB_MIN_LATENCY_MS` fija la espera mínima, `STUB_MAX_LATENCY_MS` fija el máximo aleatorio y `PAYMENT_TIMEOUT_MS` debe superar la latencia normal si quieres mostrar una aprobación sin timeout. Por ejemplo: `STUB_MIN_LATENCY_MS=2500`, `STUB_MAX_LATENCY_MS=3000`, `PAYMENT_TIMEOUT_MS=4500`. El retardo ocurre en el stub HTTP; el frontend no simula estados ni espera artificialmente.
+
+La [vista interactiva de los siete flujos](./docs/presentacion-flujos.html) permite reproducir cada secuencia a 1,8, 3 o 5 segundos por paso. Sus tiempos son didácticos; los tiempos reales se ven en React.
 
 - Confirmado: `STUB_REJECT_RATE=0`, `STUB_ERROR_RATE=0`.
 - Compensado: `STUB_REJECT_RATE=1` o `STUB_ERROR_RATE=1`.

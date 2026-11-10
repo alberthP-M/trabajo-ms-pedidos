@@ -12,3 +12,8 @@ coverage/
 postgres-data/
 playwright-report/
 test-results/
+# Ignorar todos los archivos Markdown
+*.md
+
+# Excepto el README principal
+!/README.md

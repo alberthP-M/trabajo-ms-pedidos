@@ -1,6 +1,6 @@
 export type Branch = { id: string; name: string; address: string };
 export type MenuItem = { id: string; name: string; description: string; priceCents: number; currency: string; stockTotal: number; availableStock: number };
-export type Order = { id: string; branchId: string; status: string; internalStatus: string; totalCents: number; currency: string; rejectionReason?: string; createdAt: string; items: Array<{ productId: string; quantity: number; unitPriceCents: number }>; history: Array<{ fromStatus?: string; toStatus: string; reason: string; createdAt: string }> };
+export type Order = { id: string; branchId: string; status: string; internalStatus: string; totalCents: number; currency: string; rejectionReason?: string; correlationId: string; createdAt: string; updatedAt: string; items: Array<{ productId: string; quantity: number; unitPriceCents: number | null }>; history: Array<{ fromStatus?: string; toStatus: string; reason: string; createdAt: string }> };
 export type OrderSummary = { id: string; branchId: string; status: string; internalStatus: string; totalCents: number; currency: string; rejectionReason?: string; createdAt: string; updatedAt: string; itemCount: number };
 export type Session = { accessToken: string; refreshToken: string; tokenType: string; expiresIn: string; user: { id: string; email: string; role: string; branchId?: string } };
 

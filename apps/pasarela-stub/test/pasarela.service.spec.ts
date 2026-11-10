@@ -1,7 +1,7 @@
 import { PasarelaService } from '../src/pasarela.service';
 
 describe('PasarelaService', () => {
-  beforeEach(() => { process.env.STUB_MODE = 'deterministic'; process.env.STUB_ERROR_RATE = '0'; process.env.STUB_REJECT_RATE = '0'; process.env.STUB_MAX_LATENCY_MS = '0'; process.env.STUB_EXECUTE_THEN_TIMEOUT_RATE = '0'; });
+  beforeEach(() => { process.env.STUB_MODE = 'deterministic'; process.env.STUB_ERROR_RATE = '0'; process.env.STUB_REJECT_RATE = '0'; process.env.STUB_MIN_LATENCY_MS = '0'; process.env.STUB_MAX_LATENCY_MS = '0'; process.env.STUB_EXECUTE_THEN_TIMEOUT_RATE = '0'; });
 
   it('mantiene el mismo resultado para una clave de idempotencia', async () => {
     const service = new PasarelaService();

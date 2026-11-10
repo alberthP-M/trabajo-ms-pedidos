@@ -101,7 +101,12 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  async markSaga(orderId: string, step: string, error?: string) { await this.pool.query('UPDATE sagas SET step=$2,last_error=$3,updated_at=now() WHERE order_id=$1', [orderId, step, error ?? null]); }
+  async markSaga(orderId: string, step: string, error?: string) {
+    await this.tx(async (client) => {
+      await client.query("UPDATE orders SET internal_status=$2, updated_at=now() WHERE id=$1 AND status='pendiente'", [orderId, step]);
+      await client.query('UPDATE sagas SET step=$2,last_error=$3,updated_at=now() WHERE order_id=$1', [orderId, step, error ?? null]);
+    });
+  }
   async addOutbox(event: EventRecord, topic = process.env.KAFKA_COMMAND_TOPIC ?? 'payments.commands.v1') { await this.pool.query('INSERT INTO outbox(id,topic,event_key,event_type,aggregate_id,payload) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING', [event.eventId, topic, event.orderId, event.eventType, event.orderId, event]); }
   async pendingOutbox(limit = 50) { await this.waitReady(); const result = await this.pool.query('SELECT id,topic,event_key,payload FROM outbox WHERE published_at IS NULL ORDER BY created_at LIMIT $1', [limit]); return result.rows; }
   async markOutbox(id: string) { await this.pool.query('UPDATE outbox SET published_at=now(), attempts=attempts+1 WHERE id=$1', [id]); }

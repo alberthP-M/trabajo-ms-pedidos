@@ -13,7 +13,12 @@ export class PasarelaService {
   private readonly authorizing = new Map<string, Promise<{ approved: boolean; operationId: string; reason?: string }>>();
   private readonly reversing = new Map<string, Promise<{ reversed: boolean; operationId?: string; reason?: string }>>();
   private number(name: string) { const value = Number(process.env[name] ?? 0); return Number.isFinite(value) ? value : 0; }
-  private async latency() { const max = this.number('STUB_MAX_LATENCY_MS'); if (max > 0) await new Promise((resolve) => setTimeout(resolve, Math.floor(Math.random() * max))); }
+  private async latency() {
+    const min = Math.max(0, this.number('STUB_MIN_LATENCY_MS'));
+    const max = Math.max(min, this.number('STUB_MAX_LATENCY_MS'));
+    const delay = Math.floor(min + Math.random() * (max - min));
+    if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
+  }
   private randomHit(name: string) { return Math.random() < Math.max(0, Math.min(1, this.number(name))); }
 
   async authorize(input: AuthorizeInput) {
