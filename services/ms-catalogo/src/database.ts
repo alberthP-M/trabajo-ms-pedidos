@@ -88,10 +88,13 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         FROM branch_products bp WHERE bp.branch_id=$1 AND bp.product_id = ANY($2::text[]) FOR UPDATE`, [branchId, ids]);
       if (products.rows.length !== items.length) throw new BadRequestException('Uno o más productos no existen en la sucursal');
       const byId = new Map(products.rows.map((row) => [row.productId, row]));
+      const totalCents = items.reduce((sum, item) => sum + item.quantity * Number(byId.get(item.productId)?.priceCents ?? 0), 0);
       for (const item of items) {
         if (!Number.isInteger(item.quantity) || item.quantity <= 0) throw new BadRequestException('Cantidad inválida');
         const product = byId.get(item.productId);
-        if (!product || product.available < item.quantity) throw new ConflictException(`Stock insuficiente para ${item.productId}`);
+        if (!product || product.available < item.quantity) {
+          throw new ConflictException({ message: `Stock insuficiente para ${item.productId}`, totalCents });
+        }
       }
       await client.query('INSERT INTO reservations(id, branch_id, status) VALUES($1,$2,\'activa\')', [id, branchId]);
       for (const item of items) {

@@ -78,6 +78,8 @@ export class PedidosService {
       this.logger.log({ orderId, correlationId: order.correlation_id, event: 'CobroSolicitado' });
     } catch (error) {
       const reason = String(error instanceof Error ? error.message : error);
+      const totalCents = Number((error as { totalCents?: unknown })?.totalCents);
+      if (Number.isInteger(totalCents) && totalCents > 0) await this.db.updateTotal(orderId, totalCents);
       if (/stock insuficiente|productos no existen|ítems inválidos/i.test(reason)) {
         await this.db.transition(orderId, 'rechazado', 'finalizado', reason, order.correlation_id);
         this.logger.warn({ orderId, correlationId: order.correlation_id, event: 'ReservaRechazada', reason });

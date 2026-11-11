@@ -27,13 +27,16 @@ describe('PedidosService saga', () => {
     const db: any = {
       getOrderForSaga: jest.fn().mockResolvedValue(baseOrder),
       getOrderItems: jest.fn().mockResolvedValue([{ productId: 'producto-hamburguesa', quantity: 99 }]),
+      updateTotal: jest.fn(),
       saveReservation: jest.fn(),
       markSaga: jest.fn(),
       transition: jest.fn().mockResolvedValue(undefined),
     };
-    const catalogo: any = { reserve: jest.fn().mockRejectedValue(new Error('Stock insuficiente')) };
+    const catalogoError = Object.assign(new Error('Stock insuficiente'), { totalCents: 3500 });
+    const catalogo: any = { reserve: jest.fn().mockRejectedValue(catalogoError) };
     const service = new PedidosService(db, catalogo, {} as any);
     await (service as any).startSaga(baseOrder.id);
+    expect(db.updateTotal).toHaveBeenCalledWith(baseOrder.id, 3500);
     expect(db.transition).toHaveBeenCalledWith(baseOrder.id, 'rechazado', 'finalizado', expect.stringContaining('Stock insuficiente'), baseOrder.correlation_id);
     expect(db.saveReservation).not.toHaveBeenCalled();
   });
