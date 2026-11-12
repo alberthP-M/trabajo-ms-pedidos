@@ -73,6 +73,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   async getOrderForSaga(orderId: string) { const result = await this.pool.query('SELECT * FROM orders WHERE id=$1', [orderId]); return result.rows[0]; }
   async pendingReservations() { await this.waitReady(); const result = await this.pool.query("SELECT id FROM orders WHERE status='pendiente' AND internal_status='reservando' ORDER BY created_at LIMIT 50"); return result.rows.map((row) => String(row.id)); }
   async getOrderItems(orderId: string) { const result = await this.pool.query('SELECT product_id AS "productId", quantity FROM order_items WHERE order_id=$1 ORDER BY product_id', [orderId]); return result.rows; }
+  async updateTotal(orderId: string, totalCents: number) { await this.pool.query('UPDATE orders SET total_cents=$2, updated_at=now() WHERE id=$1', [orderId, totalCents]); }
 
   async saveReservation(orderId: string, reservationId: string, totalCents: number, items: Array<{ productId: string; quantity: number; priceCents: number }>) {
     return this.tx(async (client) => {

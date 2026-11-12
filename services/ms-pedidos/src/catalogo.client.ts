@@ -14,7 +14,12 @@ export class CatalogoClient {
       headers.set('authorization', `Bearer ${serviceToken()}`);
       const response = await fetch(`${this.baseUrl}${path}`, { ...init, headers, signal: controller.signal });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(`${response.status}: ${body.message ?? body.error ?? 'Catálogo rechazó la solicitud'}`);
+      if (!response.ok) {
+        const error = Object.assign(new Error(`${response.status}: ${body.message ?? body.error ?? 'Catálogo rechazó la solicitud'}`), {
+          totalCents: body.totalCents,
+        });
+        throw error;
+      }
       return body;
     } finally { clearTimeout(timer); }
   }

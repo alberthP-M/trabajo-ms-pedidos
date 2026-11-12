@@ -44,7 +44,3 @@ npm run build
 npm test
 docker compose up --build
 ```
-
-Consultar el plan completo en [plan.md](./plan.md) y los planes específicos por carpeta. Las decisiones sobre saga, outbox/inbox, Kafka y aislamiento de datos están documentadas allí y en `docs/`.
-
-El guion reproducible de login, pedidos, compensación, idempotencia y fallos está en [docs/escenarios.md](./docs/escenarios.md).
