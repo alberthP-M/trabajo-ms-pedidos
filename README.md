@@ -30,6 +30,10 @@ Para ajustar la velocidad de la demostración, modifica `.env` y recrea los cont
 
 La [vista interactiva de los siete flujos](./docs/presentacion-flujos.html) permite reproducir cada secuencia a 1,8, 3 o 5 segundos por paso. Sus tiempos son didácticos; los tiempos reales se ven en React.
 
+El [C4 de arquitectura completa](./docs/c4-arquitectura-completa.md) muestra los
+contenedores, bases de datos, comunicaciones REST, topics de Kafka, publicadores y
+grupos consumidores.
+
 - Confirmado: `STUB_REJECT_RATE=0`, `STUB_ERROR_RATE=0`.
 - Compensado: `STUB_REJECT_RATE=1` o `STUB_ERROR_RATE=1`.
 - Latencia/circuit breaker: `STUB_MAX_LATENCY_MS=3000` y `PAYMENT_TIMEOUT_MS=500`.
