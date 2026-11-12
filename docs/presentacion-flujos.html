@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flujos de la saga · Trabajo Pedidos</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, Segoe UI, Arial, sans-serif; background: #09111f; color: #e8f1ff; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 15% 0%, #162c4c 0, #09111f 48%); }
+    button { font: inherit; cursor: pointer; }
+    button:focus-visible { outline: 3px solid #8be0ff; outline-offset: 3px; }
+    .shell { max-width: 1550px; margin: auto; padding: 26px 34px 42px; }
+    .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 20px; }
+    .eyebrow { margin: 0 0 8px; color: #70e6d6; font-weight: 800; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(28px, 3vw, 46px); letter-spacing: -.035em; }
+    .subtitle { margin: 8px 0 0; color: #a9bdd9; font-size: 16px; }
+    .top-actions { display: flex; gap: 9px; flex-wrap: wrap; justify-content: flex-end; }
+    .ghost, .control { border: 1px solid #426184; color: #e8f1ff; background: #172942; border-radius: 11px; padding: 10px 14px; font-weight: 700; }
+    .speed { border: 1px solid #426184; color: #e8f1ff; background: #172942; border-radius: 11px; padding: 9px 12px; font: inherit; font-weight: 700; }
+    .ghost:hover, .control:hover { background: #233d5e; }
+    .scenario-bar { display: flex; gap: 8px; flex-wrap: wrap; margin: 18px 0 20px; }
+    .scenario { border: 1px solid #375274; background: #102038; color: #a9bdd9; border-radius: 999px; padding: 9px 14px; font-size: 13px; font-weight: 700; }
+    .scenario:hover { color: white; border-color: #72bbed; }
+    .scenario.active { background: #70e6d6; color: #072028; border-color: #70e6d6; }
+    .main { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(335px, .85fr); gap: 18px; align-items: stretch; }
+    .panel { background: #101d32; border: 1px solid #2b4568; border-radius: 20px; box-shadow: 0 18px 45px #02071155; }
+    .diagram-panel { padding: 18px; }
+    .panel-heading { display: flex; gap: 12px; justify-content: space-between; align-items: baseline; margin: 2px 3px 14px; }
+    h2 { font-size: 18px; margin: 0; }
+    .small { color: #93abc9; font-size: 12px; }
+    .map { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(2, 116px); gap: 28px 20px; padding: 19px 14px; min-height: 315px; border: 1px solid #263c59; border-radius: 15px; background: linear-gradient(120deg, #0c1729, #112139); }
+    .wires { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; overflow: visible; }
+    .node { z-index: 1; position: relative; border-radius: 14px; border: 2px solid #355577; background: #152b47; padding: 13px 11px; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 10px 24px #02081488; transition: background .22s, border-color .22s, transform .22s, box-shadow .22s; }
+    .node .type { color: #90a8c6; text-transform: uppercase; font-size: 10px; letter-spacing: .14em; font-weight: 800; }
+    .node strong { font-size: clamp(13px, 1.5vw, 19px); margin-top: 4px; overflow-wrap: anywhere; }
+    .node .hint { font-size: 11px; color: #b8c9df; margin-top: 5px; line-height: 1.3; }
+    .node.active { background: #1d4561; border-color: #76ead9; box-shadow: 0 0 0 4px #76ead926, 0 12px 26px #02081488; transform: translateY(-3px); }
+    .node.target { border-color: #ffce7b; background: #4d3c2c; }
+    .node[data-id="frontend"] { grid-area: 1 / 1; }
+    .node[data-id="auth"] { grid-area: 2 / 1; }
+    .node[data-id="pedidos"] { grid-area: 1 / 2; }
+    .node[data-id="kafka"] { grid-area: 2 / 2; }
+    .node[data-id="catalogo"] { grid-area: 1 / 3; }
+    .node[data-id="pagos"] { grid-area: 2 / 3; }
+    .node[data-id="stub"] { grid-area: 2 / 4; }
+    .legend { display: flex; flex-wrap: wrap; gap: 12px 20px; margin: 15px 4px 0; color: #a9bdd9; font-size: 12px; }
+    .dot { display: inline-block; height: 10px; width: 10px; border-radius: 50%; margin-right: 6px; }
+    .dot.rest { background: #76ead9; }.dot.event { background: #8bb9ff; }.dot.gateway { background: #ffce7b; }.dot.local { background: #b995f2; }
+    .detail { padding: 22px; display: flex; flex-direction: column; min-height: 380px; }
+    .step-kicker { color: #70e6d6; letter-spacing: .14em; text-transform: uppercase; font-size: 11px; font-weight: 800; }
+    .detail h2 { font-size: clamp(23px, 2.3vw, 34px); line-height: 1.12; margin: 13px 0 13px; }
+    .detail p { color: #c0d0e7; line-height: 1.55; margin: 0 0 17px; font-size: 16px; }
+    .route { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin: 0 0 16px; }
+    .badge { border: 1px solid #416385; background: #1a3454; padding: 6px 9px; border-radius: 8px; font-size: 12px; font-weight: 800; }
+    .badge.protocol { color: #081b2c; background: #8bb9ff; border-color: #8bb9ff; }
+    .route-arrow { color: #7fe1d4; font-size: 20px; }
+    .fact { border-left: 3px solid #ffce7b; padding: 8px 12px; color: #e6d6b4; background: #3d342528; line-height: 1.45; font-size: 13px; margin-top: auto; }
+    .state-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 17px; }
+    .state-box { border: 1px solid #354d6b; background: #0c1a2c; border-radius: 10px; padding: 11px 12px; min-height: 59px; }
+    .state-box span { display: block; color: #8ca8cb; text-transform: uppercase; letter-spacing: .1em; font-size: 10px; font-weight: 800; }
+    .state-box strong { display: block; font-size: 15px; margin-top: 5px; }
+    .timeline-panel { margin-top: 18px; padding: 17px 20px; }
+    .timeline-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 13px; gap: 10px; }
+    .timeline { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 7px; scrollbar-color: #496a8e transparent; }
+    .tick { flex: 0 0 145px; text-align: left; background: #172942; border: 1px solid #385578; color: #c0d0e7; border-radius: 10px; padding: 10px; min-height: 68px; font-weight: 700; font-size: 12px; line-height: 1.3; }
+    .tick span { display: block; color: #75ddcd; font-size: 10px; margin-bottom: 5px; letter-spacing: .1em; }
+    .tick.current { background: #274a66; border-color: #70e6d6; color: white; }
+    .tick.done { border-color: #4d7e78; }
+    .bottom { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-top: 16px; }
+    .counter { color: #acc1dc; font-weight: 700; font-size: 13px; }
+    .controls { display: flex; gap: 8px; }
+    .control.primary { background: #70e6d6; border-color: #70e6d6; color: #09202b; }
+    .control:disabled { opacity: .4; cursor: default; }
+    .help { font-size: 11px; color: #7e9cbc; margin-top: 9px; }
+    @media (max-width: 1020px) { .main { grid-template-columns: 1fr; } .detail { min-height: 280px; } }
+    @media (max-width: 640px) { .shell { padding: 18px 12px 28px; }.top { flex-direction: column; }.map { gap: 12px 6px; padding: 14px 6px; grid-template-rows: repeat(2, 103px); min-height: 245px; }.node { padding: 7px 5px; }.node .hint { display: none; }.node strong { font-size: 11px; }.node .type { font-size: 8px; }.state-bar { grid-template-columns: 1fr 1fr; }.timeline-panel { padding: 14px; } }
+    @media print { body { background: white; color: #14263d; }.shell { max-width: none; }.panel { box-shadow: none; border-color: #aaa; }.top-actions,.scenario-bar,.bottom,.help,.timeline { display: none; }.main { display: block; }.diagram-panel { margin-bottom: 15px; }.node { color: white; }.detail { min-height: 0; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="top">
+      <div><p class="eyebrow">MIS-708 · Trabajo aplicado</p><h1>Mapa interactivo de la saga</h1><p class="subtitle">Selecciona un escenario y avanza paso a paso por los servicios reales.</p></div>
+      <div class="top-actions"><button class="ghost" id="play" type="button">▶ Reproducir recorrido</button><select class="speed" id="speed" aria-label="Tiempo entre pasos"><option value="1800">1,8 s / paso</option><option value="3000" selected>3 s / paso</option><option value="5000">5 s / paso</option></select><button class="ghost" id="reset" type="button">Reiniciar escenario</button><button class="ghost" id="fullscreen" type="button">Pantalla completa</button></div>
+    </div>
+    <nav id="scenarios" class="scenario-bar" aria-label="Escenarios de la saga"></nav>
+    <div class="main">
+      <section class="panel diagram-panel" aria-label="Mapa de componentes">
+        <div class="panel-heading"><h2>Servicios y dependencias</h2><span class="small">Tres servicios de negocio: Catálogo · Pedidos · Pagos</span></div>
+        <div class="map" id="map">
+          <svg class="wires" id="wires" aria-hidden="true"></svg>
+          <div class="node" data-id="frontend"><span class="type">Interfaz</span><strong>frontend</strong><span class="hint">React · cliente y sucursal</span></div>
+          <div class="node" data-id="auth"><span class="type">Auxiliar</span><strong>ms-auth</strong><span class="hint">JWT y roles</span></div>
+          <div class="node" data-id="pedidos"><span class="type">Microservicio</span><strong>ms-pedidos</strong><span class="hint">Pedido y saga</span></div>
+          <div class="node" data-id="kafka"><span class="type">Broker</span><strong>Kafka</strong><span class="hint">Comandos y resultados</span></div>
+          <div class="node" data-id="catalogo"><span class="type">Microservicio</span><strong>ms-catalogo</strong><span class="hint">Menú, stock y reservas</span></div>
+          <div class="node" data-id="pagos"><span class="type">Microservicio</span><strong>ms-pagos</strong><span class="hint">Autorización y reversión</span></div>
+          <div class="node" data-id="stub"><span class="type">Dependencia externa</span><strong>pasarela-stub</strong><span class="hint">Fallas simuladas</span></div>
+        </div>
+        <div class="legend"><span><i class="dot rest"></i>REST</span><span><i class="dot event"></i>Evento Kafka</span><span><i class="dot gateway"></i>Pasarela HTTP</span><span><i class="dot local"></i>Persistencia local</span></div>
+      </section>
+      <section class="panel detail" aria-live="polite">
+        <span class="step-kicker" id="step-kicker"></span>
+        <h2 id="step-title"></h2>
+        <p id="step-description"></p>
+        <div class="route" id="step-route"></div>
+        <div class="fact" id="step-fact"></div>
+        <div class="state-bar"><div class="state-box"><span>Estado público</span><strong id="order-state"></strong></div><div class="state-box"><span>Stock ilustrativo</span><strong id="stock-state"></strong></div></div>
+      </section>
+    </div>
+    <section class="panel timeline-panel" aria-label="Pasos del escenario"><div class="timeline-head"><h2 id="scenario-title"></h2><span class="small" id="scenario-summary"></span></div><div class="timeline" id="timeline"></div></section>
+    <div class="bottom"><span class="counter" id="counter"></span><div class="controls"><button class="control" id="prev" type="button">← Anterior</button><button class="control primary" id="next" type="button">Siguiente →</button></div></div>
+    <div class="help">Teclas: ← y → para avanzar · 1–7 para cambiar escenario · F para pantalla completa. La reproducción es didáctica; el tiempo real del pedido se ve en React. Stock ilustrativo: 20 unidades, pedido de 1.</div>
+  </div>
+  <script>
+    const make = (title, description, from, to, protocol, state, stock, fact) => ({ title, description, from, to, protocol, state, stock, fact });
+    const scenarios = [
+      { id: 'confirmado', label: '1 · Confirmado', summary: 'Reserva → cobro aprobado → consolidación', steps: [
+        make('Login y menú', 'El cliente inicia sesión en ms-auth. React usa el JWT para consultar el menú de ms-catalogo.', 'frontend', 'auth', 'REST + JWT', 'Sin pedido', '20 disponibles', 'El JWT identifica al cliente; el token opaco de pago se usa después.'),
+        make('Pedido pendiente', 'React envía POST /v1/pedidos con JWT, ítems, token de pago e Idempotency-Key. Pedidos guarda estado pendiente e historial.', 'frontend', 'pedidos', 'REST', 'pendiente', '20 disponibles', 'El POST no espera a la pasarela: el cliente consulta el estado más tarde.'),
+        make('Reserva de stock', 'Pedidos llama por REST a Catálogo. Catálogo reserva una unidad y devuelve el precio confirmado.', 'pedidos', 'catalogo', 'REST', 'pendiente', '19 disponibles · 1 reservado', 'La reserva reduce disponibilidad; todavía no descuenta el stock total.'),
+        make('Comando duradero', 'Pedidos guarda CobroSolicitado en su outbox junto con el progreso local y lo publica en Kafka.', 'pedidos', 'kafka', 'Evento', 'pendiente', '19 disponibles · 1 reservado', 'Outbox permite publicar después de un reinicio; una reentrega puede duplicar el mensaje.'),
+        make('Pagos consume', 'Kafka entrega CobroSolicitado a ms-pagos. Pagos registra la transacción e intentos.', 'kafka', 'pagos', 'Evento', 'pendiente', '19 disponibles · 1 reservado', 'Pagos tiene una base de datos propia y no cambia el estado del pedido.'),
+        make('Autorización', 'Pagos llama a la pasarela con timeout e identificador idempotente.', 'pagos', 'stub', 'HTTP', 'pendiente', '19 disponibles · 1 reservado', 'Token de demo: tok_demo_aprobado. La pasarela devuelve un ID de operación.'),
+        make('PagoAprobado', 'Pagos publica PagoAprobado en Kafka; el broker entrega el resultado a Pedidos.', 'pagos', 'kafka', 'Evento', 'pendiente', '19 disponibles · 1 reservado', 'El evento lleva orderId y correlationId para relacionarlo con el pedido.'),
+        make('Consolidación', 'Pedidos solicita a Catálogo consolidar la reserva. Catálogo descuenta definitivamente una unidad.', 'pedidos', 'catalogo', 'REST', 'pendiente', '19 totales · 0 reservado', 'La aprobación por sí sola aún no confirma el pedido.'),
+        make('Confirmado', 'Pedidos guarda la transición a confirmado con fecha y motivo. React consulta el pedido y actualiza el menú.', 'pedidos', 'frontend', 'REST', 'confirmado', '19 disponibles', 'Historial público: pendiente → confirmado.')
+      ]},
+      { id: 'rechazado', label: '2 · Rechazo', summary: 'Reserva → PagoRechazado → liberación', steps: [
+        make('Pedido recibido', 'Cliente envía el pedido con tok_reject. Pedidos guarda el estado pendiente.', 'frontend', 'pedidos', 'REST', 'pendiente', '20 disponibles', 'El token de pago no es el JWT.'),
+        make('Reserva', 'Pedidos solicita a Catálogo reservar una unidad.', 'pedidos', 'catalogo', 'REST', 'pendiente', '19 disponibles · 1 reservado', 'La reserva queda activa hasta conocer el resultado del cobro.'),
+        make('CobroSolicitado', 'Pedidos publica el comando a Kafka mediante outbox.', 'pedidos', 'kafka', 'Evento', 'pendiente', '19 disponibles · 1 reservado', 'Topic: payments.commands.v1.'),
+        make('Autorización rechazada', 'Pagos consulta el stub y recibe el rechazo del emisor simulado.', 'pagos', 'stub', 'HTTP', 'pendiente', '19 disponibles · 1 reservado', 'Un rechazo de negocio es distinto de un timeout técnico.'),
+        make('PagoRechazado', 'Pagos publica el resultado; Kafka lo entrega a Pedidos.', 'pagos', 'kafka', 'Evento', 'pendiente', '19 disponibles · 1 reservado', 'Topic: payments.results.v1.'),
+        make('Compensación', 'Pedidos ordena a Catálogo liberar la reserva.', 'pedidos', 'catalogo', 'REST', 'pendiente', '20 disponibles · 0 reservado', 'Liberar compensa la reserva; no hay descuento definitivo.'),
+        make('Rechazado con motivo', 'Pedidos guarda rechazado e historial. React muestra el motivo del cobro.', 'pedidos', 'frontend', 'REST', 'rechazado', '20 disponibles', 'El cliente puede consultar el estado y el historial en cualquier momento.')
+      ]},
+      { id: 'stock', label: '3 · Sin stock', summary: 'La saga termina antes del cobro', steps: [
+        make('Cantidad excesiva', 'El cliente envía un pedido que supera el stock disponible. La API lo guarda inicialmente pendiente.', 'frontend', 'pedidos', 'REST', 'pendiente', '20 disponibles', 'La UI limita la cantidad; este caso se muestra mejor por API.'),
+        make('Reserva imposible', 'Pedidos pide reservar. Catálogo devuelve 409 por stock insuficiente.', 'pedidos', 'catalogo', 'REST', 'pendiente', '20 disponibles', 'La reserva de todos los ítems se hace en una transacción: no queda stock apartado parcialmente.'),
+        make('Rechazo temprano', 'Pedidos guarda rechazado con motivo. No crea CobroSolicitado.', 'pedidos', 'pedidos', 'Local', 'rechazado', '20 disponibles', 'Kafka, Pagos y la pasarela no participan en este camino.'),
+        make('Consulta del cliente', 'React consulta el pedido y presenta el motivo y el historial.', 'pedidos', 'frontend', 'REST', 'rechazado', '20 disponibles', 'Aquí no hay compensación de cobro: nunca se solicitó.')
+      ]},
+      { id: 'circuito', label: '4 · Circuito', summary: 'Error de pasarela → reintentos → liberación', steps: [
+        make('Crear pedido', 'El cliente crea un pedido con tok_error; Pedidos lo guarda pendiente.', 'frontend', 'pedidos', 'REST', 'pendiente', '20 disponibles', 'Token determinista para generar un error de pasarela.'),
+        make('Reservar', 'Pedidos reserva stock en Catálogo y envía CobroSolicitado por Kafka.', 'pedidos', 'catalogo', 'REST', 'pendiente', '19 disponibles · 1 reservado', 'El fallo externo todavía no afecta al menú ni al stock de otros productos.'),
+        make('Entregar comando', 'Kafka entrega CobroSolicitado a Pagos.', 'kafka', 'pagos', 'Evento', 'pendiente', '19 disponibles · 1 reservado', 'Pedidos no llama directamente a la pasarela.'),
+        make('Errores y backoff', 'Pagos hace hasta tres intentos con timeout y espera creciente. El stub responde con error.', 'pagos', 'stub', 'HTTP', 'pendiente', '19 disponibles · 1 reservado', 'El circuit breaker abre tras el umbral configurado de fallos.'),
+        make('Rechazo técnico', 'Pagos publica PagoRechazado con motivo de circuito abierto.', 'pagos', 'kafka', 'Evento', 'pendiente', '19 disponibles · 1 reservado', 'La falla no deja el pedido indefinidamente esperando pago.'),
+        make('Liberar', 'Pedidos recibe el resultado y pide a Catálogo liberar la reserva.', 'pedidos', 'catalogo', 'REST', 'pendiente', '20 disponibles · 0 reservado', 'El stock disponible vuelve al nivel anterior.'),
+        make('Resultado visible', 'Pedidos guarda rechazado con motivo; React actualiza el estado.', 'pedidos', 'frontend', 'REST', 'rechazado', '20 disponibles', 'El motivo permite distinguir este fallo técnico de una tarjeta rechazada.')
+      ]},
+      { id: 'incierto', label: '5 · Timeout incierto', summary: 'La pasarela autorizó, pero se perdió la respuesta', steps: [
+        make('Orden y reserva', 'Pedidos crea el pedido, reserva stock y publica CobroSolicitado.', 'pedidos', 'catalogo', 'REST', 'pendiente', '19 disponibles · 1 reservado', 'El cobro todavía no está confirmado.'),
+        make('Autorizar', 'Pagos envía la autorización con la clave idempotente derivada del pedido.', 'pagos', 'stub', 'HTTP', 'pendiente', '19 disponibles · 1 reservado', 'El stub puede registrar la operación antes de responder.'),
+        make('Respuesta perdida', 'La pasarela autoriza, pero demora la respuesta más allá del timeout de Pagos.', 'stub', 'pagos', 'HTTP', 'pendiente', '19 disponibles · 1 reservado', 'Timeout no significa que el cobro no ocurrió.'),
+        make('Consultar operación', 'Pagos consulta /operations/{orderId}; el stub devuelve la autorización ya realizada.', 'pagos', 'stub', 'HTTP', 'pendiente', '19 disponibles · 1 reservado', 'La reconciliación evita un segundo cobro.'),
+        make('Resultado aprobado', 'Pagos publica PagoAprobado con el ID de operación encontrado.', 'pagos', 'kafka', 'Evento', 'pendiente', '19 disponibles · 1 reservado', 'La misma clave permite responder de forma idempotente.'),
+        make('Confirmar', 'Pedidos consolida la reserva en Catálogo y guarda confirmado.', 'pedidos', 'catalogo', 'REST', 'confirmado', '19 disponibles', 'Demostración avanzada: STUB_EXECUTE_THEN_TIMEOUT_RATE=1.')
+      ]},
+      { id: 'reversion', label: '6 · Reversión', summary: 'Cobro aprobado + fallo al consolidar', steps: [
+        make('Pago aprobado', 'Pagos ya publicó PagoAprobado; el dinero fue autorizado.', 'kafka', 'pedidos', 'Evento', 'pendiente', '19 disponibles · 1 reservado', 'No se debe declarar rechazo sin resolver ese cobro.'),
+        make('Consolidación falla', 'Pedidos reintenta consolidar en Catálogo y sigue recibiendo error.', 'pedidos', 'catalogo', 'REST', 'pendiente', '19 disponibles · 1 reservado', 'Este caso tiene prueba unitaria; no hay un token que fuerce esta falla exacta.'),
+        make('ReversionSolicitada', 'Pedidos guarda el comando de reversión en outbox y lo publica en Kafka.', 'pedidos', 'kafka', 'Evento', 'pendiente', '19 disponibles · 1 reservado', 'El comando incluye el ID real de autorización.'),
+        make('Reversión en pasarela', 'Pagos consume el comando y llama al stub con una clave idempotente.', 'pagos', 'stub', 'HTTP', 'pendiente', '19 disponibles · 1 reservado', 'Pagos registra intentos y puede reintentar si la pasarela falla.'),
+        make('Resultado de reversión', 'Pagos publica ReversionResultado. Si aún falla, conserva reversion_pendiente y reintenta periódicamente.', 'pagos', 'kafka', 'Evento', 'pendiente', '19 disponibles · 1 reservado', 'No se marca rechazado mientras no se confirme la reversión.'),
+        make('Liberar y rechazar', 'Una vez confirmada la reversión, Pedidos libera stock en Catálogo y registra el rechazo.', 'pedidos', 'catalogo', 'REST', 'rechazado', '20 disponibles', 'Si Catálogo sigue caído, esta última liberación también debe esperar su recuperación.')
+      ]},
+      { id: 'duplicado', label: '7 · Idempotencia', summary: 'Dos solicitudes, una intención de compra', steps: [
+        make('Primer POST', 'React crea el pedido con una Idempotency-Key y Pedidos guarda un ID único.', 'frontend', 'pedidos', 'REST', 'pendiente', '20 disponibles', 'La clave representa una misma intención de compra.'),
+        make('Una reserva', 'Pedidos reserva stock usando el mismo ID de pedido como ID de reserva.', 'pedidos', 'catalogo', 'REST', 'pendiente', '19 disponibles · 1 reservado', 'Repetir esta reserva devuelve el resultado existente.'),
+        make('Segundo POST', 'El cliente repite el mismo cuerpo y la misma Idempotency-Key.', 'frontend', 'pedidos', 'REST', 'pendiente', '19 disponibles · 1 reservado', 'Pedidos devuelve el mismo ID; no crea otra saga.'),
+        make('Un solo efecto', 'Pagos y pasarela también protegen la operación mediante inbox e idempotencia.', 'pagos', 'stub', 'HTTP', 'pendiente', '19 disponibles · 1 reservado', 'Una clave reutilizada con otro cuerpo se rechaza.'),
+        make('Estado final único', 'El pedido sigue su flujo normal y termina confirmado o rechazado una sola vez.', 'pedidos', 'frontend', 'REST', 'confirmado o rechazado', 'Según resultado', 'Idempotency-Key, eventId y correlationId cumplen funciones distintas.')
+      ]}
+    ];
+    const serviceLabels = { frontend: 'frontend', auth: 'ms-auth', pedidos: 'ms-pedidos', catalogo: 'ms-catalogo', kafka: 'Kafka', pagos: 'ms-pagos', stub: 'pasarela-stub' };
+    const colors = { REST: '#76ead9', Evento: '#8bb9ff', HTTP: '#ffce7b', Local: '#b995f2' };
+    const map = document.getElementById('map');
+    const wires = document.getElementById('wires');
+    let scenarioIndex = 0;
+    let stepIndex = 0;
+    let autoTimer;
+    function stopPlayback() { if (autoTimer) window.clearInterval(autoTimer); autoTimer = undefined; el('play').textContent = '▶ Reproducir recorrido'; }
+    function startPlayback() {
+      if (stepIndex === scenarios[scenarioIndex].steps.length - 1) stepIndex = 0;
+      render();
+      el('play').textContent = '❚❚ Pausar recorrido';
+      autoTimer = window.setInterval(() => {
+        if (stepIndex < scenarios[scenarioIndex].steps.length - 1) { stepIndex++; render(); }
+        else stopPlayback();
+      }, Number(el('speed').value));
+    }
+    function el(id) { return document.getElementById(id); }
+    function tag(text, className) { const span = document.createElement('span'); span.className = className; span.textContent = text; return span; }
+    function renderScenarios() {
+      const nav = el('scenarios'); nav.replaceChildren();
+      scenarios.forEach((scenario, index) => {
+        const button = document.createElement('button'); button.type = 'button'; button.className = `scenario${index === scenarioIndex ? ' active' : ''}`;
+        button.textContent = scenario.label; button.setAttribute('aria-current', index === scenarioIndex ? 'true' : 'false');
+        button.addEventListener('click', () => { stopPlayback(); scenarioIndex = index; stepIndex = 0; render(); }); nav.append(button);
+      });
+    }
+    function renderTimeline(scenario) {
+      const timeline = el('timeline'); timeline.replaceChildren();
+      scenario.steps.forEach((step, index) => {
+        const button = document.createElement('button'); button.type = 'button'; button.className = `tick${index === stepIndex ? ' current' : index < stepIndex ? ' done' : ''}`;
+        const n = document.createElement('span'); n.textContent = `PASO ${index + 1}`; button.append(n, document.createTextNode(step.title));
+        button.addEventListener('click', () => { stopPlayback(); stepIndex = index; render(); }); timeline.append(button);
+      });
+      const current = timeline.querySelector('.current');
+      if (current) timeline.scrollTo({ left: Math.max(0, current.offsetLeft - timeline.offsetLeft - 20), behavior: 'smooth' });
+    }
+    function drawLine() {
+      const step = scenarios[scenarioIndex].steps[stepIndex];
+      const from = map.querySelector(`[data-id="${step.from}"]`);
+      const to = map.querySelector(`[data-id="${step.to}"]`);
+      map.querySelectorAll('.node').forEach(node => node.classList.remove('active', 'target'));
+      from?.classList.add('active'); to?.classList.add('target');
+      wires.replaceChildren();
+      if (!from || !to || from === to) return;
+      const box = map.getBoundingClientRect(); const a = from.getBoundingClientRect(); const b = to.getBoundingClientRect();
+      const x1 = a.left + a.width / 2 - box.left, y1 = a.top + a.height / 2 - box.top;
+      const x2 = b.left + b.width / 2 - box.left, y2 = b.top + b.height / 2 - box.top;
+      const dx = x2 - x1, dy = y2 - y1, length = Math.hypot(dx, dy) || 1;
+      const padA = Math.min(a.width, a.height) * .37, padB = Math.min(b.width, b.height) * .39;
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', x1 + dx / length * padA); line.setAttribute('y1', y1 + dy / length * padA);
+      line.setAttribute('x2', x2 - dx / length * padB); line.setAttribute('y2', y2 - dy / length * padB);
+      const color = colors[step.protocol] || colors.REST; line.setAttribute('stroke', color); line.setAttribute('stroke-width', '5');
+      line.setAttribute('stroke-linecap', 'round'); line.setAttribute('marker-end', 'url(#arrowhead)');
+      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs'); const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+      marker.setAttribute('id', 'arrowhead'); marker.setAttribute('markerWidth', '10'); marker.setAttribute('markerHeight', '10'); marker.setAttribute('refX', '8'); marker.setAttribute('refY', '3'); marker.setAttribute('orient', 'auto');
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path'); path.setAttribute('d', 'M0,0 L0,6 L9,3 z'); path.setAttribute('fill', color); marker.append(path); defs.append(marker); wires.append(defs, line);
+    }
+    function render() {
+      const scenario = scenarios[scenarioIndex], step = scenario.steps[stepIndex];
+      renderScenarios(); renderTimeline(scenario);
+      el('scenario-title').textContent = scenario.label.replace(/^\d+ · /, ''); el('scenario-summary').textContent = scenario.summary;
+      el('step-kicker').textContent = `${scenario.label} · paso ${stepIndex + 1} de ${scenario.steps.length}`;
+      el('step-title').textContent = step.title; el('step-description').textContent = step.description;
+      el('step-fact').textContent = step.fact; el('order-state').textContent = step.state; el('stock-state').textContent = step.stock;
+      const route = el('step-route'); route.replaceChildren(tag(serviceLabels[step.from], 'badge'), tag('→', 'route-arrow'), tag(serviceLabels[step.to], 'badge'), tag(step.protocol, 'badge protocol'));
+      el('counter').textContent = `${stepIndex + 1} / ${scenario.steps.length} pasos`;
+      el('prev').disabled = stepIndex === 0; el('next').disabled = stepIndex === scenario.steps.length - 1;
+      requestAnimationFrame(drawLine);
+    }
+    el('prev').addEventListener('click', () => { stopPlayback(); if (stepIndex > 0) { stepIndex--; render(); } });
+    el('next').addEventListener('click', () => { stopPlayback(); if (stepIndex < scenarios[scenarioIndex].steps.length - 1) { stepIndex++; render(); } });
+    el('reset').addEventListener('click', () => { stopPlayback(); stepIndex = 0; render(); });
+    el('play').addEventListener('click', () => { if (autoTimer) stopPlayback(); else startPlayback(); });
+    el('speed').addEventListener('change', () => { if (autoTimer) { stopPlayback(); startPlayback(); } });
+    el('fullscreen').addEventListener('click', () => { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.(); });
+    document.addEventListener('keydown', event => {
+      if (event.target instanceof HTMLElement && ['INPUT','TEXTAREA','SELECT'].includes(event.target.tagName)) return;
+      if (event.key === 'ArrowRight' && stepIndex < scenarios[scenarioIndex].steps.length - 1) { stopPlayback(); stepIndex++; render(); }
+      if (event.key === 'ArrowLeft' && stepIndex > 0) { stopPlayback(); stepIndex--; render(); }
+      if (/^[1-7]$/.test(event.key)) { stopPlayback(); scenarioIndex = Number(event.key) - 1; stepIndex = 0; render(); }
+      if (event.key.toLowerCase() === 'f') el('fullscreen').click();
+    });
+    window.addEventListener('resize', () => requestAnimationFrame(drawLine));
+    render();
+  </script>
+</body>
+</html>

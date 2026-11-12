@@ -1,0 +1,116 @@
+openapi: 3.0.0
+paths:
+  /v1/auth/register:
+    post:
+      operationId: AuthController_register
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CredentialsDto'
+      responses:
+        '201':
+          description: ''
+      summary: Registra un cliente
+      tags:
+        - auth
+  /v1/auth/login:
+    post:
+      operationId: AuthController_login
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CredentialsDto'
+      responses:
+        '201':
+          description: ''
+      summary: Inicia sesión y emite tokens
+      tags:
+        - auth
+  /v1/auth/refresh:
+    post:
+      operationId: AuthController_refresh
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshDto'
+      responses:
+        '201':
+          description: ''
+      summary: Rota el refresh token y emite un nuevo access token
+      tags:
+        - auth
+  /v1/auth/logout:
+    post:
+      operationId: AuthController_logout
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshDto'
+      responses:
+        '201':
+          description: ''
+      summary: Revoca un refresh token
+      tags:
+        - auth
+  /v1/auth/me:
+    get:
+      operationId: AuthController_me
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      security:
+        - bearer: []
+      summary: Obtiene el usuario autenticado
+      tags:
+        - auth
+  /health/live:
+    get:
+      operationId: HealthController_live
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Health
+  /health/ready:
+    get:
+      operationId: HealthController_ready
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Health
+info:
+  title: ms-auth
+  description: ''
+  version: '1.0'
+  contact: {}
+tags: []
+servers: []
+components:
+  securitySchemes:
+    bearer:
+      scheme: bearer
+      bearerFormat: JWT
+      type: http
+  schemas:
+    CredentialsDto:
+      type: object
+      properties: {}
+    RefreshDto:
+      type: object
+      properties: {}
